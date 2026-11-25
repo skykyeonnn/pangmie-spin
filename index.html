@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spin Pangsit – Prototipe Pangsit Mie</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FFF3D6;--surf:#FFFFFF;--ink:#3A0F0C;--mut:#7a4a3f;--red:#B3201A;--gold:#F5B31B;--line:#ecd6a6;--on-red:#FFF3D6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a0b09;--surf:#3d1511;--ink:#FFF3D6;--mut:#e0b98f;--red:#d83a30;--line:#5a2a22}}
+:root[data-theme="dark"]{--bg:#2a0b09;--surf:#3d1511;--ink:#FFF3D6;--mut:#e0b98f;--red:#d83a30;--line:#5a2a22}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 Nunito,system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+h1,h2{font-family:"Baloo 2",system-ui,sans-serif;line-height:1.1;margin:0}
+h1{font-size:clamp(30px,6vw,48px);font-weight:800}
+h2{font-size:22px;font-weight:800;margin-bottom:10px}
+.sub{color:var(--mut);max-width:60ch;margin:6px 0 20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surf);border:2px solid var(--line);border-radius:18px;padding:18px}
+.stage{display:flex;flex-direction:column;align-items:center}
+.wheelbox{position:relative;width:min(320px,80vw);aspect-ratio:1}
+.wheelbox svg{width:100%;height:100%}
+#wheel{transform-origin:160px 160px;transition:transform 4s cubic-bezier(.12,.7,.1,1)}
+.ptr{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid var(--ink)}
+button{font:800 17px "Baloo 2",system-ui,sans-serif;border:0;border-radius:999px;padding:11px 24px;cursor:pointer;background:var(--red);color:var(--on-red)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.alt{background:transparent;color:var(--ink);border:2px solid var(--line);padding:8px 16px;font-size:15px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+#msg{min-height:3.2em;text-align:center;font-weight:700;margin:12px 0 0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--mut);font-weight:700}
+.dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kpi{border:2px solid var(--line);border-radius:14px;padding:10px 12px}
+.kpi b{display:block;font:800 26px "Baloo 2",system-ui,sans-serif}
+.kpi span{color:var(--mut);font-size:13px}
+ul{margin:0;padding-left:18px}
+label{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:6px 0;font-size:14px}
+input[type=number]{width:96px;padding:6px 8px;border-radius:8px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.ok{color:#1f8a3b}.bad{color:var(--red)}
+.wide{margin-top:16px}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<h1>Spin Pangsit</h1>
+<p class="sub">Satu mekanik: satu putaran gratis per hari. Putar, kumpulkan poin dan kupon, lalu lihat dampaknya pada biaya hadiah.</p>
+
+<div class="grid">
+  <section class="card stage" aria-labelledby="t1">
+    <h2 id="t1">Putaran hari ini</h2>
+    <div class="wheelbox">
+      <div class="ptr" aria-hidden="true"></div>
+      <svg viewBox="0 0 320 320" role="img" aria-label="Roda hadiah"><g id="wheel"></g><circle cx="160" cy="160" r="18" fill="#3A0F0C"/><circle cx="160" cy="160" r="8" fill="#F5B31B"/></svg>
+    </div>
+    <p id="msg" aria-live="polite">Tekan Putar untuk mencoba hadiah hari ini.</p>
+    <div class="row">
+      <button id="spin">Putar sekarang</button>
+      <button id="next" class="alt">Lanjut ke hari berikutnya</button>
+      <button id="reset" class="alt">Reset data</button>
+    </div>
+    <p class="sub" style="text-align:center;margin:12px 0 0;font-size:14px" id="status"></p>
+  </section>
+
+  <section class="card" aria-labelledby="t2">
+    <h2 id="t2">Peluang hadiah</h2>
+    <table><thead><tr><th>Hadiah</th><th>Peluang</th><th>Biaya maks.</th></tr></thead><tbody id="odds"></tbody></table>
+    <p class="sub" style="font-size:14px;margin:10px 0 0">Ukuran irisan roda sama dengan peluangnya. Setelah 10 putaran tanpa kupon, putaran ke-11 pasti memberi kupon Rp3.000.</p>
+    <h2 style="margin-top:18px">Kupon aktif</h2>
+    <ul id="coupons"><li>Belum ada kupon.</li></ul>
+  </section>
+</div>
+
+<section class="card wide" aria-labelledby="t3">
+  <h2 id="t3">Pengukuran sesi ini</h2>
+  <div class="kpis">
+    <div class="kpi"><b id="k1">0</b><span>Hari aktif (membuka spin)</span></div>
+    <div class="kpi"><b id="k2">0</b><span>Total putaran</span></div>
+    <div class="kpi"><b id="k3">0</b><span>Poin terkumpul</span></div>
+    <div class="kpi"><b id="k4">Rp0</b><span>Biaya hadiah maks. (kupon dianggap ditebus)</span></div>
+  </div>
+</section>
+
+<div class="grid wide">
+  <section class="card" aria-labelledby="t4">
+    <h2 id="t4">Uji 1.000 putaran</h2>
+    <p class="sub" style="font-size:14px;margin-top:0">Memeriksa apakah rata-rata biaya per putaran sesuai rancangan (sekitar Rp815).</p>
+    <div class="row" style="justify-content:flex-start;margin:0 0 10px"><button id="sim" class="alt">Jalankan uji</button></div>
+    <div id="simout" class="scroll"></div>
+  </section>
+
+  <section class="card" aria-labelledby="t5">
+    <h2 id="t5">Estimasi biaya 30 hari</h2>
+    <label>Pengguna aktif<input type="number" id="u" value="500" min="0"></label>
+    <label>Yang membuka spin tiap hari (%)<input type="number" id="o" value="40" min="0" max="100"></label>
+    <label>Kupon yang ditebus (%)<input type="number" id="r" value="25" min="0" max="100"></label>
+    <label>Order per pengguna per bulan<input type="number" id="a" value="3" min="0" step="0.5"></label>
+    <div id="est" style="margin-top:10px"></div>
+  </section>
+</div>
+</main>
+
+<script>
+var PRIZES=[
+ {n:"Coba lagi besok",p:35,cost:0,pts:0,c:"#8a5a4a"},
+ {n:"+5 poin",p:30,cost:250,pts:5,c:"#F5B31B"},
+ {n:"+10 poin",p:18,cost:500,pts:10,c:"#E8861B"},
+ {n:"Kupon Rp3.000",p:10,cost:3000,pts:0,cp:3000,c:"#B3201A"},
+ {n:"Gratis es teh",p:5,cost:3000,pts:0,cp:3000,c:"#2f8f83"},
+ {n:"Kupon Rp10.000",p:2,cost:10000,pts:0,cp:10000,c:"#6b1a5e"}
+];
+var rp=function(n){return "Rp"+Math.round(n).toLocaleString("id-ID")};
+var S0={day:1,spunDay:0,spins:0,days:0,pts:0,cost:0,dry:0,coupons:[],hist:[]};
+var S=JSON.parse(JSON.stringify(S0));
+try{var raw=localStorage.getItem("spinpangsit");if(raw){S=Object.assign({},S0,JSON.parse(raw))}}catch(e){}
+function save(){try{localStorage.setItem("spinpangsit",JSON.stringify(S))}catch(e){}}
+var $=function(i){return document.getElementById(i)};
+var NS="http://www.w3.org/2000/svg",rot=0,busy=false,spans=[];
+
+function pt(a,r){var t=(a-90)*Math.PI/180;return [160+r*Math.cos(t),160+r*Math.sin(t)]}
+function build(){
+  var g=$("wheel"),a=0,h="";
+  PRIZES.forEach(function(z,i){
+    var s=z.p*3.6,e=a+s,p1=pt(a,150),p2=pt(e,150),big=s>180?1:0;
+    h+='<path d="M160 160L'+p1[0]+' '+p1[1]+'A150 150 0 '+big+' 1 '+p2[0]+' '+p2[1]+'Z" fill="'+z.c+'" stroke="#FFF3D6" stroke-width="2"/>';
+    if(z.p>=10){var m=pt(a+s/2,96);h+='<text x="'+m[0]+'" y="'+m[1]+'" fill="#fff" font-size="12" font-weight="800" text-anchor="middle" dominant-baseline="middle" transform="rotate('+(a+s/2)+' '+m[0]+' '+m[1]+')">'+z.n.replace("Kupon ","")+'</text>'}
+    spans.push([a,e]);a=e;
+  });
+  g.innerHTML=h;
+  $("odds").innerHTML=PRIZES.map(function(z){return '<tr><td><span class="dot" style="background:'+z.c+'"></span>'+z.n+'</td><td>'+z.p+'%</td><td>'+(z.cost?rp(z.cost):"Rp0")+'</td></tr>'}).join("");
+}
+function pick(dry){
+  if(dry>=10){return 3}
+  var r=Math.random()*100,c=0;
+  for(var i=0;i<PRIZES.length;i++){c+=PRIZES[i].p;if(r<c)return i}
+  return 0;
+}
+function render(){
+  S.coupons=S.coupons.filter(function(c){return c.exp>=S.day});
+  $("coupons").innerHTML=S.coupons.length?S.coupons.map(function(c){return "<li>"+c.n+" – berlaku sampai hari ke-"+c.exp+" ("+(c.exp-S.day+1)+" hari lagi)</li>"}).join(""):"<li>Belum ada kupon.</li>";
+  $("k1").textContent=S.days;$("k2").textContent=S.spins;$("k3").textContent=S.pts;$("k4").textContent=rp(S.cost);
+  $("spin").disabled=busy||S.spunDay===S.day;
+  $("status").textContent="Hari ke-"+S.day+(S.spunDay===S.day?" · putaran hari ini sudah dipakai":" · 1 putaran tersedia")+" · putaran tanpa kupon: "+S.dry+"/10";
+  save();
+}
+$("spin").onclick=function(){
+  if(busy||S.spunDay===S.day)return;
+  busy=true;$("spin").disabled=true;
+  var i=pick(S.dry),z=PRIZES[i],mid=(spans[i][0]+spans[i][1])/2;
+  var jitter=(Math.random()-.5)*(z.p*3.6*.6);
+  var target=(360-(mid+jitter)+360)%360;
+  var add=360*5+((target-(rot%360))+360)%360;
+  rot+=add;
+  var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
+  $("wheel").style.transition=reduce?"none":"transform 4s cubic-bezier(.12,.7,.1,1)";
+  $("wheel").style.transform="rotate("+rot+"deg)";
+  $("msg").textContent="Memutar...";
+  setTimeout(function(){
+    S.spins++;S.days++;S.spunDay=S.day;S.pts+=z.pts;S.cost+=z.cost;
+    if(z.cp){S.coupons.push({n:z.n,exp:S.day+6});S.dry=0}else{S.dry++}
+    $("msg").textContent=z.cp?("Selamat! "+z.n+" masuk ke akun Anda. Pakai dalam 7 hari."):z.pts?("Anda dapat "+z.n+"."):"Belum beruntung. Coba lagi besok!";
+    busy=false;render();
+  },reduce?50:4100);
+};
+$("next").onclick=function(){if(busy)return;S.day++;$("msg").textContent="Hari baru dimulai. Putaran gratis Anda sudah tersedia.";render()};
+$("reset").onclick=function(){if(busy)return;S=JSON.parse(JSON.stringify(S0));$("msg").textContent="Data direset.";render()};
+
+$("sim").onclick=function(){
+  var N=1000,cnt=PRIZES.map(function(){return 0}),dry=0,tot=0;
+  for(var k=0;k<N;k++){var i=pick(dry);cnt[i]++;tot+=PRIZES[i].cost;dry=PRIZES[i].cp?0:dry+1}
+  var avg=tot/N;
+  $("simout").innerHTML='<table><thead><tr><th>Hadiah</th><th>Hasil</th><th>Target</th></tr></thead><tbody>'+PRIZES.map(function(z,i){return "<tr><td>"+z.n+"</td><td>"+(cnt[i]/N*100).toFixed(1)+"%</td><td>"+z.p+"%</td></tr>"}).join("")+'</tbody></table><p><b>Rata-rata biaya per putaran: '+rp(avg)+'</b> <span class="'+(avg<=900?"ok":"bad")+'">'+(avg<=900?"(dalam batas rancangan)":"(melebihi rancangan)")+'</span></p>';
+};
+function est(){
+  var u=+$("u").value||0,o=(+$("o").value||0)/100,r=(+$("r").value||0)/100,a=+$("a").value||0;
+  var spins=u*o*30;
+  var pcost=0,pcoupon=0;
+  PRIZES.forEach(function(z){if(z.cp){pcoupon+=z.p/100*z.cost}else{pcost+=z.p/100*z.cost}});
+  var cost=spins*(pcost+pcoupon*r);
+  var rev=u*a*25000,pct=rev?cost/rev*100:0;
+  $("est").innerHTML='<table><tbody><tr><td>Total putaran</td><td>'+Math.round(spins).toLocaleString("id-ID")+'</td></tr><tr><td>Biaya hadiah</td><td>'+rp(cost)+'</td></tr><tr><td>Omzet (Rp25.000/order)</td><td>'+rp(rev)+'</td></tr><tr><td><b>Biaya terhadap omzet</b></td><td><b class="'+(pct<=6?"ok":"bad")+'">'+pct.toFixed(1)+'%</b> (batas 6%)</td></tr></tbody></table>';
+}
+["u","o","r","a"].forEach(function(i){$(i).oninput=est});
+build();render();est();
+</script>
+</body>
+</html>
